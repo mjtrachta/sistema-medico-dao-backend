@@ -9,6 +9,7 @@ flask-marshmallow==0.15.0
 marshmallow-sqlalchemy==0.29.0
 email-validator==2.1.0
 bcrypt==4.1.2
+Flask-JWT-Extended==4.6.0
 
 # Testing
 pytest==7.4.3
