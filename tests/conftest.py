@@ -165,6 +165,124 @@ def turno(db_session, paciente, medico, ubicacion):
 
 
 # ==========================================
+# FIXTURES DE AUTENTICACIÓN JWT
+# ==========================================
+
+@pytest.fixture
+def admin_user(db_session):
+    """Fixture: Crea un usuario admin de prueba."""
+    from models import Usuario
+    admin = Usuario(
+        nombre_usuario='admin_test',
+        email='admin@test.com',
+        rol='admin'
+    )
+    admin.set_password('testpass123')
+    db_session.add(admin)
+    db_session.commit()
+    return admin
+
+
+@pytest.fixture
+def medico_user(db_session, medico):
+    """Fixture: Crea un usuario médico de prueba."""
+    from models import Usuario
+    user = Usuario(
+        nombre_usuario='medico_test',
+        email='medico@test.com',
+        rol='medico'
+    )
+    user.set_password('testpass123')
+    db_session.add(user)
+    db_session.commit()
+    # Asociar usuario con médico
+    medico.usuario_id = user.id
+    db_session.commit()
+    return user
+
+
+@pytest.fixture
+def paciente_user(db_session, paciente):
+    """Fixture: Crea un usuario paciente de prueba."""
+    from models import Usuario
+    user = Usuario(
+        nombre_usuario='paciente_test',
+        email='paciente@test.com',
+        rol='paciente'
+    )
+    user.set_password('testpass123')
+    db_session.add(user)
+    db_session.commit()
+    # Asociar usuario con paciente
+    paciente.usuario_id = user.id
+    db_session.commit()
+    return user
+
+
+@pytest.fixture
+def admin_token(app, admin_user):
+    """Fixture: Genera token JWT para admin."""
+    from flask_jwt_extended import create_access_token
+    with app.app_context():
+        token = create_access_token(
+            identity=str(admin_user.id),
+            additional_claims={'rol': admin_user.rol}
+        )
+        return token
+
+
+@pytest.fixture
+def medico_token(app, medico_user):
+    """Fixture: Genera token JWT para médico."""
+    from flask_jwt_extended import create_access_token
+    with app.app_context():
+        token = create_access_token(
+            identity=str(medico_user.id),
+            additional_claims={'rol': medico_user.rol}
+        )
+        return token
+
+
+@pytest.fixture
+def paciente_token(app, paciente_user):
+    """Fixture: Genera token JWT para paciente."""
+    from flask_jwt_extended import create_access_token
+    with app.app_context():
+        token = create_access_token(
+            identity=str(paciente_user.id),
+            additional_claims={'rol': paciente_user.rol}
+        )
+        return token
+
+
+@pytest.fixture
+def auth_headers_admin(admin_token):
+    """Fixture: Headers de autorización para admin."""
+    return {
+        'Authorization': f'Bearer {admin_token}',
+        'Content-Type': 'application/json'
+    }
+
+
+@pytest.fixture
+def auth_headers_medico(medico_token):
+    """Fixture: Headers de autorización para médico."""
+    return {
+        'Authorization': f'Bearer {medico_token}',
+        'Content-Type': 'application/json'
+    }
+
+
+@pytest.fixture
+def auth_headers_paciente(paciente_token):
+    """Fixture: Headers de autorización para paciente."""
+    return {
+        'Authorization': f'Bearer {paciente_token}',
+        'Content-Type': 'application/json'
+    }
+
+
+# ==========================================
 # FIXTURES DE MOCKS
 # ==========================================
 

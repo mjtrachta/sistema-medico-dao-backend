@@ -118,7 +118,7 @@ class TestTurnosAPI:
     DEMUESTRA: Integración de TODOS los patrones
     """
 
-    def test_create_turno_sin_horario_falla(self, client, paciente, medico, ubicacion):
+    def test_create_turno_sin_horario_falla(self, client, paciente, medico, ubicacion, auth_headers_admin):
         """
         Test: Crear turno sin horario configurado falla.
 
@@ -138,7 +138,7 @@ class TestTurnosAPI:
                 'duracion_min': 30,
                 'motivo_consulta': 'Test'
             }),
-            content_type='application/json'
+            headers=auth_headers_admin
         )
 
         assert response.status_code == 400
@@ -147,7 +147,7 @@ class TestTurnosAPI:
         assert 'disponible' in data['error'].lower()
 
 
-    def test_create_turno_con_horario_exitoso(self, client, paciente, medico, ubicacion, horario_medico):
+    def test_create_turno_con_horario_exitoso(self, client, paciente, medico, ubicacion, horario_medico, auth_headers_admin):
         """
         Test: Crear turno con horario configurado es exitoso.
 
@@ -171,7 +171,7 @@ class TestTurnosAPI:
                 'duracion_min': 30,
                 'motivo_consulta': 'Control'
             }),
-            content_type='application/json'
+            headers=auth_headers_admin
         )
 
         assert response.status_code == 201
@@ -182,27 +182,27 @@ class TestTurnosAPI:
         assert data['codigo_turno'].startswith('T-')
         assert data['estado'] == 'pendiente'
 
-    def test_get_turno_by_id(self, client, turno):
+    def test_get_turno_by_id(self, client, turno, auth_headers_admin):
         """Test: Obtiene turno por ID."""
-        response = client.get(f'/api/turnos/{turno.id}')
+        response = client.get(f'/api/turnos/{turno.id}', headers=auth_headers_admin)
 
         assert response.status_code == 200
         data = json.loads(response.data)
         assert data['id'] == turno.id
         assert data['codigo_turno'] == 'T-TEST-001'
 
-    def test_list_turnos(self, client, turno):
+    def test_list_turnos(self, client, turno, auth_headers_admin):
         """Test: Lista todos los turnos."""
-        response = client.get('/api/turnos')
+        response = client.get('/api/turnos', headers=auth_headers_admin)
 
         assert response.status_code == 200
         data = json.loads(response.data)
         assert isinstance(data, list)
         assert len(data) >= 1
 
-    def test_list_turnos_filtrado_por_paciente(self, client, paciente, turno):
+    def test_list_turnos_filtrado_por_paciente(self, client, paciente, turno, auth_headers_admin):
         """Test: Lista turnos filtrados por paciente."""
-        response = client.get(f'/api/turnos?paciente_id={paciente.id}')
+        response = client.get(f'/api/turnos?paciente_id={paciente.id}', headers=auth_headers_admin)
 
         assert response.status_code == 200
         data = json.loads(response.data)
@@ -229,38 +229,38 @@ class TestTurnosAPI:
         assert '08:00' in data['horarios_disponibles']
 
 
-    def test_cancelar_turno(self, client, turno):
+    def test_cancelar_turno(self, client, turno, auth_headers_admin):
         """
         Test: Cancelar turno cambia estado.
 
         PATRÓN DEMOSTRADO: Observer Pattern
         - Cancelación dispara notificación (en prod)
         """
-        response = client.patch(f'/api/turnos/{turno.id}/cancelar')
+        response = client.patch(f'/api/turnos/{turno.id}/cancelar', headers=auth_headers_admin)
 
         assert response.status_code == 200
         data = json.loads(response.data)
         assert data['estado'] == 'cancelado'
 
-    def test_confirmar_turno(self, client, turno):
+    def test_confirmar_turno(self, client, turno, auth_headers_admin):
         """Test: Confirmar turno cambia estado a confirmado."""
-        response = client.patch(f'/api/turnos/{turno.id}/confirmar')
+        response = client.patch(f'/api/turnos/{turno.id}/confirmar', headers=auth_headers_admin)
 
         assert response.status_code == 200
         data = json.loads(response.data)
         assert data['estado'] == 'confirmado'
 
-    def test_completar_turno(self, client, turno):
+    def test_completar_turno(self, client, turno, auth_headers_admin):
         """Test: Completar turno cambia estado a completado."""
-        response = client.patch(f'/api/turnos/{turno.id}/completar')
+        response = client.patch(f'/api/turnos/{turno.id}/completar', headers=auth_headers_admin)
 
         assert response.status_code == 200
         data = json.loads(response.data)
         assert data['estado'] == 'completado'
 
-    def test_ausente_turno(self, client, turno):
+    def test_ausente_turno(self, client, turno, auth_headers_admin):
         """Test: Marcar turno como ausente cambia estado a ausente."""
-        response = client.patch(f'/api/turnos/{turno.id}/ausente')
+        response = client.patch(f'/api/turnos/{turno.id}/ausente', headers=auth_headers_admin)
 
         assert response.status_code == 200
         data = json.loads(response.data)
@@ -327,9 +327,9 @@ class TestMedicosCRUD:
         data = json.loads(response.data)
         assert data['nombre'] == 'Dr. Actualizado'
 
-    def test_delete_medico(self, client, medico):
+    def test_delete_medico(self, client, medico, auth_headers_admin):
         """Test: Desactiva médico (soft delete)."""
-        response = client.delete(f'/api/medicos/{medico.id}')
+        response = client.delete(f'/api/medicos/{medico.id}', headers=auth_headers_admin)
 
         assert response.status_code == 200
         data = json.loads(response.data)
@@ -339,7 +339,7 @@ class TestMedicosCRUD:
 class TestHistoriasClinicasAPI:
     """Tests de API de Historias Clínicas."""
 
-    def test_create_historia_clinica(self, client, turno):
+    def test_create_historia_clinica(self, client, turno, auth_headers_medico):
         """Test: Crea historia clínica desde turno completado."""
         # Marcar turno como completado
         from models.database import db
@@ -353,14 +353,14 @@ class TestHistoriasClinicasAPI:
                 'diagnostico': 'Diagnóstico de prueba',
                 'tratamiento': 'Tratamiento de prueba'
             }),
-            content_type='application/json'
+            headers=auth_headers_medico
         )
 
         assert response.status_code == 201
         data = json.loads(response.data)
         assert data['diagnostico'] == 'Diagnóstico de prueba'
 
-    def test_get_historial_paciente(self, client, paciente, medico):
+    def test_get_historial_paciente(self, client, paciente, medico, auth_headers_medico):
         """Test: Obtiene historial de paciente."""
         # Crear historia clínica
         from models import HistoriaClinica
@@ -374,7 +374,7 @@ class TestHistoriasClinicasAPI:
         db.session.add(hc)
         db.session.commit()
 
-        response = client.get(f'/api/historias-clinicas/paciente/{paciente.id}')
+        response = client.get(f'/api/historias-clinicas/paciente/{paciente.id}', headers=auth_headers_medico)
 
         assert response.status_code == 200
         data = json.loads(response.data)
@@ -385,7 +385,7 @@ class TestHistoriasClinicasAPI:
 class TestRecetasAPI:
     """Tests de API de Recetas."""
 
-    def test_create_receta(self, client, paciente, medico):
+    def test_create_receta(self, client, paciente, medico, auth_headers_medico):
         """Test: Crea receta electrónica."""
         response = client.post(
             '/api/recetas',
@@ -402,7 +402,7 @@ class TestRecetasAPI:
                 ],
                 'dias_validez': 30
             }),
-            content_type='application/json'
+            headers=auth_headers_medico
         )
 
         assert response.status_code == 201
@@ -410,7 +410,7 @@ class TestRecetasAPI:
         assert 'codigo_receta' in data
         assert data['codigo_receta'].startswith('R-')
 
-    def test_get_recetas_paciente(self, client, paciente, medico):
+    def test_get_recetas_paciente(self, client, paciente, medico, auth_headers_medico):
         """Test: Obtiene recetas de paciente."""
         # Crear receta
         from models import Receta, ItemReceta
@@ -425,7 +425,7 @@ class TestRecetasAPI:
         db.session.add(receta)
         db.session.commit()
 
-        response = client.get(f'/api/recetas/paciente/{paciente.id}')
+        response = client.get(f'/api/recetas/paciente/{paciente.id}', headers=auth_headers_medico)
 
         assert response.status_code == 200
         data = json.loads(response.data)
@@ -479,17 +479,17 @@ class TestReportesAPI:
 class TestHorariosAPI:
     """Tests de API de Horarios."""
 
-    def test_list_horarios(self, client, horario_medico):
+    def test_list_horarios(self, client, horario_medico, auth_headers_admin):
         """Test: Lista horarios de médicos."""
-        response = client.get('/api/horarios')
+        response = client.get('/api/horarios', headers=auth_headers_admin)
 
         assert response.status_code == 200
         data = json.loads(response.data)
         assert isinstance(data, list)
 
-    def test_list_horarios_filtrado_por_medico(self, client, medico, horario_medico):
+    def test_list_horarios_filtrado_por_medico(self, client, medico, horario_medico, auth_headers_admin):
         """Test: Lista horarios filtrados por médico."""
-        response = client.get(f'/api/horarios?medico_id={medico.id}')
+        response = client.get(f'/api/horarios?medico_id={medico.id}', headers=auth_headers_admin)
 
         assert response.status_code == 200
         data = json.loads(response.data)
@@ -497,7 +497,7 @@ class TestHorariosAPI:
         if len(data) > 0:
             assert data[0]['medico_id'] == medico.id
 
-    def test_create_horario(self, client, medico, ubicacion):
+    def test_create_horario(self, client, medico, ubicacion, auth_headers_admin):
         """Test: Crea un horario de atención."""
         response = client.post(
             '/api/horarios',
@@ -508,7 +508,7 @@ class TestHorariosAPI:
                 'hora_inicio': '14:00',
                 'hora_fin': '18:00'
             }),
-            content_type='application/json'
+            headers=auth_headers_admin
         )
 
         assert response.status_code == 201
@@ -516,7 +516,7 @@ class TestHorariosAPI:
         assert data['dia_semana'] == 'martes'
         assert data['hora_inicio'] == '14:00'
 
-    def test_create_horario_dia_invalido(self, client, medico, ubicacion):
+    def test_create_horario_dia_invalido(self, client, medico, ubicacion, auth_headers_admin):
         """Test: Falla si el día de la semana es inválido."""
         response = client.post(
             '/api/horarios',
@@ -527,7 +527,7 @@ class TestHorariosAPI:
                 'hora_inicio': '14:00',
                 'hora_fin': '18:00'
             }),
-            content_type='application/json'
+            headers=auth_headers_admin
         )
 
         assert response.status_code == 400
@@ -538,18 +538,18 @@ class TestHorariosAPI:
 class TestUbicacionesAPI:
     """Tests de API de Ubicaciones."""
 
-    def test_list_ubicaciones(self, client, ubicacion):
+    def test_list_ubicaciones(self, client, ubicacion, auth_headers_admin):
         """Test: Lista ubicaciones."""
-        response = client.get('/api/ubicaciones')
+        response = client.get('/api/ubicaciones', headers=auth_headers_admin)
 
         assert response.status_code == 200
         data = json.loads(response.data)
         assert len(data) >= 1
         assert data[0]['nombre'] == 'Consultorio Test'
 
-    def test_get_ubicacion_by_id(self, client, ubicacion):
+    def test_get_ubicacion_by_id(self, client, ubicacion, auth_headers_admin):
         """Test: Obtiene ubicación por ID."""
-        response = client.get(f'/api/ubicaciones/{ubicacion.id}')
+        response = client.get(f'/api/ubicaciones/{ubicacion.id}', headers=auth_headers_admin)
 
         assert response.status_code == 200
         data = json.loads(response.data)

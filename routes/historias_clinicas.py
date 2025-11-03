@@ -175,48 +175,20 @@ def create_historia_clinica():
 @jwt_required()
 def update_historia_clinica(id):
     """
-    Actualiza una historia clínica existente.
+    ENDPOINT DESHABILITADO - Las historias clínicas son documentos médico-legales INMUTABLES.
 
-    Permisos: SOLO el médico que la creó
-    Razón: Editar historias clínicas es un acto médico que requiere matrícula profesional.
+    Razón médico-legal:
+    - Las historias clínicas deben preservar la integridad del registro médico
+    - No pueden modificarse después de creadas para evitar alteración de evidencia
+    - Cualquier corrección debe hacerse mediante addendums, no modificando el original
+    - Esto es requerido por normativas de salud y protección de datos médicos
+
+    Si necesitas corregir información:
+    1. Crear una nueva historia clínica con la corrección
+    2. O implementar un sistema de addendums que preserve el contenido original
     """
-    try:
-        current_user_id = int(get_jwt_identity())
-        claims = get_jwt()
-        user_rol = claims.get('rol')
-
-        # SOLO médicos pueden editar historias clínicas
-        if user_rol != 'medico':
-            return jsonify({'error': 'Solo los médicos pueden actualizar historias clínicas'}), 403
-
-        # Obtener médico actual
-        medico = Medico.query.filter_by(usuario_id=current_user_id).first()
-        if not medico:
-            return jsonify({'error': 'Médico no encontrado'}), 404
-
-        # Verificar que la historia fue creada por este médico
-        historia_existente = historia_service.get_by_id(id)
-        if historia_existente.medico_id != medico.id:
-            return jsonify({'error': 'Solo puede actualizar sus propias historias clínicas'}), 403
-
-        data = request.get_json()
-
-        historia = historia_service.actualizar(
-            historia_id=id,
-            diagnostico=data.get('diagnostico'),
-            tratamiento=data.get('tratamiento'),
-            observaciones=data.get('observaciones')
-        )
-
-        return jsonify({
-            'id': historia.id,
-            'diagnostico': historia.diagnostico,
-            'tratamiento': historia.tratamiento,
-            'observaciones': historia.observaciones,
-            'mensaje': 'Historia clínica actualizada exitosamente'
-        }), 200
-
-    except ValueError as e:
-        return jsonify({'error': str(e)}), 400
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    return jsonify({
+        'error': 'Las historias clínicas no pueden editarse',
+        'razon': 'Son documentos médico-legales inmutables',
+        'alternativa': 'Crear una nueva historia clínica o contactar al administrador'
+    }), 405  # 405 Method Not Allowed
