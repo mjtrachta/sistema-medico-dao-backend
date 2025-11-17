@@ -66,6 +66,8 @@ class ReporteService:
         completados = sum(1 for t in turnos if t.estado == 'completado')
         cancelados = sum(1 for t in turnos if t.estado == 'cancelado')
         pendientes = sum(1 for t in turnos if t.estado == 'pendiente')
+        confirmados = sum(1 for t in turnos if t.estado == 'confirmado')
+        ausentes = sum(1 for t in turnos if t.estado == 'ausente')
 
         # Serializar turnos
         turnos_data = []
@@ -84,6 +86,15 @@ class ReporteService:
             })
 
         return {
+            'medico_id': medico.id,
+            'medico_nombre': medico.nombre_completo,
+            'fecha_inicio': fecha_inicio.isoformat(),
+            'fecha_fin': fecha_fin.isoformat(),
+            'total_turnos': total,
+            'confirmados': confirmados,
+            'completados': completados,
+            'cancelados': cancelados,
+            'ausentes': ausentes,
             'medico': {
                 'id': medico.id,
                 'nombre_completo': medico.nombre_completo,
@@ -98,75 +109,85 @@ class ReporteService:
                 'total': total,
                 'completados': completados,
                 'cancelados': cancelados,
-                'pendientes': pendientes
+                'pendientes': pendientes,
+                'confirmados': confirmados,
+                'ausentes': ausentes
             }
         }
 
     def turnos_por_especialidad(
         self,
-        fecha_inicio: date = None,
-        fecha_fin: date = None
-    ) -> List[Dict]:
+        especialidad_id: int,
+        fecha_inicio: date,
+        fecha_fin: date
+    ) -> Dict:
         """
-        Reporte: Cantidad de turnos por especialidad.
+        Reporte: Cantidad de turnos por especialidad con detalle de médicos.
 
         PATRÓN: Aggregate Pattern
         - Usa SQL aggregates para estadísticas
 
         Returns:
-            [
-                {
-                    'especialidad': {...},
-                    'total_turnos': int,
-                    'completados': int,
-                    'cancelados': int,
-                    'pendientes': int
-                },
-                ...
-            ]
+            {
+                'especialidad_id': int,
+                'especialidad_nombre': str,
+                'total_turnos': int,
+                'total_medicos': int,
+                'medicos_turnos': [...]
+            }
         """
-        # Query base
+        # Obtener especialidad
+        especialidad = Especialidad.query.get(especialidad_id)
+        if not especialidad:
+            raise ValueError(f"Especialidad {especialidad_id} no encontrada")
+
+        # Query para obtener turnos por médico de la especialidad
         from sqlalchemy import case
         query = db.session.query(
-            Especialidad.id,
-            Especialidad.nombre,
-            func.count(Turno.id).label('total'),
-            func.sum(case((Turno.estado == 'completado', 1), else_=0)).label('completados'),
-            func.sum(case((Turno.estado == 'cancelado', 1), else_=0)).label('cancelados'),
-            func.sum(case((Turno.estado == 'pendiente', 1), else_=0)).label('pendientes')
-        ).join(
-            Medico, Especialidad.id == Medico.especialidad_id
+            Medico.id,
+            Medico.nombre,
+            Medico.apellido,
+            func.count(Turno.id).label('total')
         ).join(
             Turno, Medico.id == Turno.medico_id
-        )
-
-        # Aplicar filtros de fecha
-        if fecha_inicio:
-            query = query.filter(Turno.fecha >= fecha_inicio)
-        if fecha_fin:
-            query = query.filter(Turno.fecha <= fecha_fin)
-
-        # Agrupar
-        query = query.group_by(Especialidad.id, Especialidad.nombre)\
-                     .order_by(func.count(Turno.id).desc())
+        ).filter(
+            and_(
+                Medico.especialidad_id == especialidad_id,
+                Turno.fecha >= fecha_inicio,
+                Turno.fecha <= fecha_fin
+            )
+        ).group_by(
+            Medico.id,
+            Medico.nombre,
+            Medico.apellido
+        ).order_by(func.count(Turno.id).desc())
 
         results = query.all()
 
         # Formatear resultados
-        reporte = []
+        medicos_turnos = []
+        total_turnos = 0
         for r in results:
-            reporte.append({
-                'especialidad': {
-                    'id': r.id,
-                    'nombre': r.nombre
-                },
-                'total_turnos': r.total or 0,
-                'completados': r.completados or 0,
-                'cancelados': r.cancelados or 0,
-                'pendientes': r.pendientes or 0
+            medicos_turnos.append({
+                'medico_id': r.id,
+                'medico_nombre': f"{r.nombre} {r.apellido}",
+                'total': r.total or 0
             })
+            total_turnos += (r.total or 0)
 
-        return reporte
+        return {
+            'especialidad_id': especialidad.id,
+            'especialidad_nombre': especialidad.nombre,
+            'fecha_inicio': fecha_inicio.isoformat(),
+            'fecha_fin': fecha_fin.isoformat(),
+            'total_turnos': total_turnos,
+            'total_medicos': len(medicos_turnos),
+            'medicos_turnos': medicos_turnos,
+            'especialidad': {
+                'id': especialidad.id,
+                'nombre': especialidad.nombre
+            }
+        }
 
     def pacientes_atendidos(
         self,
@@ -194,7 +215,8 @@ class ReporteService:
             Paciente.nombre,
             Paciente.apellido,
             Paciente.nro_historia_clinica,
-            func.count(HistoriaClinica.id).label('consultas')
+            func.count(HistoriaClinica.id).label('consultas'),
+            func.max(HistoriaClinica.fecha_consulta).label('ultima_consulta')
         ).join(
             HistoriaClinica, Paciente.id == HistoriaClinica.paciente_id
         ).filter(
@@ -225,13 +247,19 @@ class ReporteService:
         pacientes = []
         for r in results:
             pacientes.append({
+                'paciente_id': r.id,
                 'id': r.id,
+                'paciente_nombre': f'{r.nombre} {r.apellido}',
                 'nombre_completo': f'{r.nombre} {r.apellido}',
                 'nro_historia_clinica': r.nro_historia_clinica,
-                'consultas': r.consultas
+                'total_consultas': r.consultas,
+                'consultas': r.consultas,
+                'ultima_consulta': r.ultima_consulta.isoformat() if r.ultima_consulta else None
             })
 
         return {
+            'fecha_inicio': fecha_inicio.isoformat(),
+            'fecha_fin': fecha_fin.isoformat(),
             'periodo': {
                 'inicio': fecha_inicio.isoformat(),
                 'fin': fecha_fin.isoformat()
@@ -291,6 +319,15 @@ class ReporteService:
 
         if total == 0:
             return {
+                'fecha_inicio': fecha_inicio.isoformat() if fecha_inicio else None,
+                'fecha_fin': fecha_fin.isoformat() if fecha_fin else None,
+                'total_turnos': 0,
+                'completados': 0,
+                'cancelados': 0,
+                'ausentes': 0,
+                'porcentaje_completados': 0.0,
+                'porcentaje_cancelados': 0.0,
+                'porcentaje_ausentes': 0.0,
                 'periodo': {
                     'inicio': fecha_inicio.isoformat() if fecha_inicio else None,
                     'fin': fecha_fin.isoformat() if fecha_fin else None
@@ -310,11 +347,13 @@ class ReporteService:
         completados = sum(1 for t in turnos if t.estado == 'completado')
         cancelados = sum(1 for t in turnos if t.estado == 'cancelado')
         pendientes = sum(1 for t in turnos if t.estado == 'pendiente')
+        ausentes = sum(1 for t in turnos if t.estado == 'ausente')
 
         # Calcular tasas (solo sobre turnos NO pendientes)
-        turnos_finalizados = completados + cancelados
+        turnos_finalizados = completados + cancelados + ausentes
         tasa_asistencia = (completados / turnos_finalizados * 100) if turnos_finalizados > 0 else 0
         tasa_cancelacion = (cancelados / turnos_finalizados * 100) if turnos_finalizados > 0 else 0
+        tasa_ausencia = (ausentes / turnos_finalizados * 100) if turnos_finalizados > 0 else 0
 
         # Agrupar por mes para gráfico
         por_mes = {}
@@ -339,6 +378,15 @@ class ReporteService:
             })
 
         return {
+            'fecha_inicio': fecha_inicio.isoformat() if fecha_inicio else None,
+            'fecha_fin': fecha_fin.isoformat() if fecha_fin else None,
+            'total_turnos': total,
+            'completados': completados,
+            'cancelados': cancelados,
+            'ausentes': ausentes,
+            'porcentaje_completados': round(tasa_asistencia, 2),
+            'porcentaje_cancelados': round(tasa_cancelacion, 2),
+            'porcentaje_ausentes': round(tasa_ausencia, 2),
             'periodo': {
                 'inicio': fecha_inicio.isoformat() if fecha_inicio else None,
                 'fin': fecha_fin.isoformat() if fecha_fin else None

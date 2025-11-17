@@ -49,40 +49,32 @@ def reporte_turnos_medico(medico_id):
         return jsonify({'error': str(e)}), 500
 
 
-@reportes_bp.route('/turnos-por-especialidad', methods=['GET'])
-def reporte_turnos_especialidad():
+@reportes_bp.route('/turnos-por-especialidad/<int:especialidad_id>', methods=['GET'])
+def reporte_turnos_especialidad(especialidad_id):
     """
-    Reporte: Cantidad de turnos por especialidad.
+    Reporte: Cantidad de turnos por especialidad con detalle de médicos.
 
-    Query params (opcionales):
-        - fecha_inicio (YYYY-MM-DD)
-        - fecha_fin (YYYY-MM-DD)
+    Query params:
+        - fecha_inicio (YYYY-MM-DD): Fecha de inicio
+        - fecha_fin (YYYY-MM-DD): Fecha de fin
 
     PATRÓN: Facade Pattern + Aggregate Pattern
     """
     try:
-        # Parsear fechas opcionales
-        fecha_inicio = None
-        fecha_fin = None
-
+        # Parsear fechas
         fecha_inicio_str = request.args.get('fecha_inicio')
-        if fecha_inicio_str:
-            fecha_inicio = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').date()
-
         fecha_fin_str = request.args.get('fecha_fin')
-        if fecha_fin_str:
-            fecha_fin = datetime.strptime(fecha_fin_str, '%Y-%m-%d').date()
+
+        if not fecha_inicio_str or not fecha_fin_str:
+            raise ValueError("Los parámetros fecha_inicio y fecha_fin son requeridos")
+
+        fecha_inicio = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').date()
+        fecha_fin = datetime.strptime(fecha_fin_str, '%Y-%m-%d').date()
 
         # Generar reporte
-        reporte = reporte_service.turnos_por_especialidad(fecha_inicio, fecha_fin)
+        reporte = reporte_service.turnos_por_especialidad(especialidad_id, fecha_inicio, fecha_fin)
 
-        return jsonify({
-            'periodo': {
-                'inicio': fecha_inicio.isoformat() if fecha_inicio else None,
-                'fin': fecha_fin.isoformat() if fecha_fin else None
-            },
-            'especialidades': reporte
-        }), 200
+        return jsonify(reporte), 200
 
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
