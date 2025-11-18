@@ -129,13 +129,15 @@ class TestReporteService:
             service = ReporteService()
 
             # Generar reporte
-            reporte = service.turnos_por_especialidad()
+            reporte = service.turnos_por_especialidad(
+                especialidad_id=especialidad.id,
+                fecha_inicio=date.today(),
+                fecha_fin=date.today()
+            )
 
-            assert len(reporte) >= 1
-            # Buscar nuestra especialidad
-            esp_reporte = next((r for r in reporte if r['especialidad']['id'] == especialidad.id), None)
-            assert esp_reporte is not None
-            assert esp_reporte['total_turnos'] >= 1
+            assert reporte['especialidad_id'] == especialidad.id
+            assert reporte['total_turnos'] >= 1
+            assert len(reporte['medicos_turnos']) >= 1
 
     def test_pacientes_atendidos(self, app, db_session, paciente, medico, ubicacion):
         """
