@@ -1,0 +1,21 @@
+# Configuración para usar Gmail con App Password
+# 1. Ir a Google Account settings
+# 2. Enable 2-Factor Authentication
+# 3. Generate App Password para "Mail"
+# 4. Usar ese password aquí
+
+# Configuración Email en .env
+EMAIL_ENABLED=true
+SMTP_SERVER=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USERNAME=tu-email@gmail.com
+SMTP_PASSWORD=tu-app-password-generado
+SMTP_USE_TLS=true
+
+# Configuración para testing local (alternative)
+# Si no tienes Gmail, puedes usar MailHog para testing local
+# SMTP_SERVER=localhost
+# SMTP_PORT=1025
+# SMTP_USERNAME=
+# SMTP_PASSWORD=
+# SMTP_USE_TLS=false
