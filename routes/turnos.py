@@ -37,9 +37,23 @@ from services.notification_service import NotificationService
 from repositories.turno_repository import TurnoRepository
 from schemas.turno_schema import turno_schema, turnos_schema
 from models import Turno, Usuario, Paciente, Medico
+import os
 
 # Blueprint de Flask
 turnos_bp = Blueprint('turnos', __name__)
+
+# ==========================================
+# CONFIGURACIÓN DE EMAIL
+# ==========================================
+def get_email_config():
+    """Obtiene configuración de email desde variables de entorno."""
+    return {
+        'server': os.getenv('SMTP_SERVER', 'smtp.gmail.com'),
+        'port': int(os.getenv('SMTP_PORT', 587)),
+        'username': os.getenv('SMTP_USERNAME', ''),
+        'password': os.getenv('SMTP_PASSWORD', ''),
+        'use_tls': os.getenv('SMTP_USE_TLS', 'true').lower() == 'true'
+    }
 
 # ==========================================
 # INICIALIZACIÓN DE SERVICIOS
@@ -50,7 +64,11 @@ turnos_bp = Blueprint('turnos', __name__)
 # Crear instancias de servicios
 turno_repository = TurnoRepository()
 turno_service = TurnoService(turno_repository=turno_repository)
-notification_service = NotificationService()
+
+# Configurar notification service con config de email
+email_config = get_email_config()
+config = {'email': email_config}
+notification_service = NotificationService(config=config)
 
 # OBSERVER PATTERN: Suscribir notification service
 turno_service.attach_observer(notification_service)

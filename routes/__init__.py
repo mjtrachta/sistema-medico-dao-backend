@@ -10,6 +10,7 @@ def register_blueprints(app):
     from .recetas import recetas_bp
     from .horarios import horarios_bp
     from .reportes import reportes_bp
+    from .testing import testing_bp  # Endpoint para testing
 
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(especialidades_bp, url_prefix='/api/especialidades')
@@ -21,3 +22,4 @@ def register_blueprints(app):
     app.register_blueprint(recetas_bp, url_prefix='/api/recetas')
     app.register_blueprint(horarios_bp, url_prefix='/api/horarios')
     app.register_blueprint(reportes_bp, url_prefix='/api/reportes')
+    app.register_blueprint(testing_bp)  # Solo para desarrollo

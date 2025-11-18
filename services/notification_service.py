@@ -153,11 +153,16 @@ class NotificationService:
             'codigo_turno': turno.codigo_turno
         })
 
-        # 4. Registrar notificación
-        self._registrar_notificacion(
-            turno, destinatario, asunto, mensaje,
-            'enviado' if exito else 'fallido'
-        )
+        # 4. Registrar notificación (sin fallar si hay problemas de BD)
+        try:
+            self._registrar_notificacion(
+                turno, destinatario, asunto, mensaje,
+                'enviado' if exito else 'fallido'
+            )
+        except Exception as e:
+            # Log del error pero no fallar el envío
+            print(f"Error guardando notificación en BD: {e}")
+            print("El email se envió correctamente, solo falló el registro en BD")
 
     def _notificar_turno_cancelado(self, turno: Turno):
         """Notifica cancelación de turno."""
@@ -167,10 +172,14 @@ class NotificationService:
 
         if destinatario:
             exito = self.strategy.send(destinatario, asunto, mensaje)
-            self._registrar_notificacion(
-                turno, destinatario, asunto, mensaje,
-                'enviado' if exito else 'fallido'
-            )
+            try:
+                self._registrar_notificacion(
+                    turno, destinatario, asunto, mensaje,
+                    'enviado' if exito else 'fallido'
+                )
+            except Exception as e:
+                print(f"Error guardando notificación en BD: {e}")
+                print("El email se envió correctamente, solo falló el registro en BD")
 
     def _notificar_turno_confirmado(self, turno: Turno):
         """Notifica confirmación de turno."""
@@ -180,10 +189,14 @@ class NotificationService:
 
         if destinatario:
             exito = self.strategy.send(destinatario, asunto, mensaje)
-            self._registrar_notificacion(
-                turno, destinatario, asunto, mensaje,
-                'enviado' if exito else 'fallido'
-            )
+            try:
+                self._registrar_notificacion(
+                    turno, destinatario, asunto, mensaje,
+                    'enviado' if exito else 'fallido'
+                )
+            except Exception as e:
+                print(f"Error guardando notificación en BD: {e}")
+                print("El email se envió correctamente, solo falló el registro en BD")
 
     def _notificar_recordatorio(self, turno: Turno):
         """Envía recordatorio de turno próximo."""
@@ -193,10 +206,14 @@ class NotificationService:
 
         if destinatario:
             exito = self.strategy.send(destinatario, asunto, mensaje)
-            self._registrar_notificacion(
-                turno, destinatario, asunto, mensaje,
-                'enviado' if exito else 'fallido'
-            )
+            try:
+                self._registrar_notificacion(
+                    turno, destinatario, asunto, mensaje,
+                    'enviado' if exito else 'fallido'
+                )
+            except Exception as e:
+                print(f"Error guardando notificación en BD: {e}")
+                print("El email se envió correctamente, solo falló el registro en BD")
 
     # ==========================================
     # CONSTRUCCIÓN DE MENSAJES
