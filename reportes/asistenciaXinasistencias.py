@@ -96,7 +96,7 @@ def generar_reporte_asistencia(asistencias=45, inasistencias=15):
     elementos.append(Image(buffer, width=6*inch, height=2.5*inch))
     
     documento.build(elementos)
-    print("✓ Informe generado correctamente: Asistencia_vs_Inasistencias.pdf")
+    print("Informe generado correctamente: Asistencia_vs_Inasistencias.pdf")
 
 if __name__ == "__main__":
     generar_reporte_asistencia(asistencias=45, inasistencias=15)

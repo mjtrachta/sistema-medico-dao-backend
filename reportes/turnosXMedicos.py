@@ -131,7 +131,7 @@ def generar_reporte_turnos_por_medico(turnos, fecha_inicio, fecha_fin, salida="T
     doc.build(elementos, onFirstPage=lambda c, d: _cabecera_footer(c, d, titulo, rango_texto),
               onLaterPages=lambda c, d: _cabecera_footer(c, d, titulo, rango_texto))
 
-    print(f"✓ Informe generado correctamente: {salida}")
+    print(f"Informe generado correctamente: {salida}")
 
 
 if __name__ == "__main__":

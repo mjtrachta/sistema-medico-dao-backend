@@ -62,4 +62,4 @@ elementos.append(table)
 # Construir el informe
 documento.build(elementos) 
 
-print("✓ Informe generado correctamente: Turnos_por_especialidad.pdf")
+print("Informe generado correctamente: Turnos_por_especialidad.pdf")
