@@ -52,7 +52,31 @@ class ReporteService:
         if not medico:
             raise ValueError(f"Médico {medico_id} no encontrado")
 
-        # Consultar turnos del período
+        # Calcular estadísticas con agregaciones SQL
+        from sqlalchemy import case
+        estadisticas = db.session.query(
+            func.count(Turno.id).label('total'),
+            func.sum(case((Turno.estado == 'completado', 1), else_=0)).label('completados'),
+            func.sum(case((Turno.estado == 'cancelado', 1), else_=0)).label('cancelados'),
+            func.sum(case((Turno.estado == 'pendiente', 1), else_=0)).label('pendientes'),
+            func.sum(case((Turno.estado == 'confirmado', 1), else_=0)).label('confirmados'),
+            func.sum(case((Turno.estado == 'ausente', 1), else_=0)).label('ausentes')
+        ).filter(
+            and_(
+                Turno.medico_id == medico_id,
+                Turno.fecha >= fecha_inicio,
+                Turno.fecha <= fecha_fin
+            )
+        ).first()
+
+        total = estadisticas.total or 0
+        completados = estadisticas.completados or 0
+        cancelados = estadisticas.cancelados or 0
+        pendientes = estadisticas.pendientes or 0
+        confirmados = estadisticas.confirmados or 0
+        ausentes = estadisticas.ausentes or 0
+
+        # Consultar turnos del período (solo para el detalle)
         turnos = Turno.query.filter(
             and_(
                 Turno.medico_id == medico_id,
@@ -60,14 +84,6 @@ class ReporteService:
                 Turno.fecha <= fecha_fin
             )
         ).order_by(Turno.fecha, Turno.hora).all()
-
-        # Calcular estadísticas
-        total = len(turnos)
-        completados = sum(1 for t in turnos if t.estado == 'completado')
-        cancelados = sum(1 for t in turnos if t.estado == 'cancelado')
-        pendientes = sum(1 for t in turnos if t.estado == 'pendiente')
-        confirmados = sum(1 for t in turnos if t.estado == 'confirmado')
-        ausentes = sum(1 for t in turnos if t.estado == 'ausente')
 
         # Serializar turnos
         turnos_data = []
@@ -313,9 +329,21 @@ class ReporteService:
         if conditions:
             query = query.filter(and_(*conditions))
 
-        # Obtener todos los turnos
-        turnos = query.all()
-        total = len(turnos)
+        # Calcular totales con agregaciones SQL
+        from sqlalchemy import case
+        estadisticas = query.with_entities(
+            func.count(Turno.id).label('total'),
+            func.sum(case((Turno.estado == 'completado', 1), else_=0)).label('completados'),
+            func.sum(case((Turno.estado == 'cancelado', 1), else_=0)).label('cancelados'),
+            func.sum(case((Turno.estado == 'pendiente', 1), else_=0)).label('pendientes'),
+            func.sum(case((Turno.estado == 'ausente', 1), else_=0)).label('ausentes')
+        ).first()
+
+        total = estadisticas.total or 0
+        completados = estadisticas.completados or 0
+        cancelados = estadisticas.cancelados or 0
+        pendientes = estadisticas.pendientes or 0
+        ausentes = estadisticas.ausentes or 0
 
         if total == 0:
             return {
@@ -343,38 +371,36 @@ class ReporteService:
                 'por_mes': []
             }
 
-        # Calcular totales
-        completados = sum(1 for t in turnos if t.estado == 'completado')
-        cancelados = sum(1 for t in turnos if t.estado == 'cancelado')
-        pendientes = sum(1 for t in turnos if t.estado == 'pendiente')
-        ausentes = sum(1 for t in turnos if t.estado == 'ausente')
-
         # Calcular tasas (solo sobre turnos NO pendientes)
         turnos_finalizados = completados + cancelados + ausentes
         tasa_asistencia = (completados / turnos_finalizados * 100) if turnos_finalizados > 0 else 0
         tasa_cancelacion = (cancelados / turnos_finalizados * 100) if turnos_finalizados > 0 else 0
         tasa_ausencia = (ausentes / turnos_finalizados * 100) if turnos_finalizados > 0 else 0
 
-        # Agrupar por mes para gráfico
-        por_mes = {}
-        for t in turnos:
-            mes_key = f"{t.fecha.year}-{t.fecha.month:02d}"
-            if mes_key not in por_mes:
-                por_mes[mes_key] = {'completados': 0, 'cancelados': 0, 'pendientes': 0}
-
-            if t.estado == 'completado':
-                por_mes[mes_key]['completados'] += 1
-            elif t.estado == 'cancelado':
-                por_mes[mes_key]['cancelados'] += 1
-            elif t.estado == 'pendiente':
-                por_mes[mes_key]['pendientes'] += 1
+        # Agrupar por mes usando SQL
+        por_mes_query = query.with_entities(
+            func.extract('year', Turno.fecha).label('year'),
+            func.extract('month', Turno.fecha).label('month'),
+            func.sum(case((Turno.estado == 'completado', 1), else_=0)).label('completados'),
+            func.sum(case((Turno.estado == 'cancelado', 1), else_=0)).label('cancelados'),
+            func.sum(case((Turno.estado == 'pendiente', 1), else_=0)).label('pendientes')
+        ).group_by(
+            func.extract('year', Turno.fecha),
+            func.extract('month', Turno.fecha)
+        ).order_by(
+            func.extract('year', Turno.fecha),
+            func.extract('month', Turno.fecha)
+        ).all()
 
         # Formatear por_mes
         por_mes_lista = []
-        for mes, datos in sorted(por_mes.items()):
+        for row in por_mes_query:
+            mes_key = f"{int(row.year)}-{int(row.month):02d}"
             por_mes_lista.append({
-                'mes': mes,
-                **datos
+                'mes': mes_key,
+                'completados': row.completados or 0,
+                'cancelados': row.cancelados or 0,
+                'pendientes': row.pendientes or 0
             })
 
         return {
