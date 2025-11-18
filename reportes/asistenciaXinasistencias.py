@@ -10,10 +10,33 @@ from datetime import datetime
 
 matplotlib.use('Agg')
 
-def generar_reporte_asistencia(asistencias=45, inasistencias=15):
+def buscar_paciente(nombre_paciente):
+    #pacientes hardcodeados
+    pacientes_datos = {
+        "juan": {"asistencias": 45, "inasistencias": 15},
+        "maria": {"asistencias": 38, "inasistencias": 22},
+        "pedro": {"asistencias": 50, "inasistencias": 10},
+        "carlos": {"asistencias": 42, "inasistencias": 18},
+        "ana": {"asistencias": 55, "inasistencias": 5},
+        "jose": {"asistencias": 35, "inasistencias": 25},
+        "carmen": {"asistencias": 48, "inasistencias": 12},
+        "diego": {"asistencias": 40, "inasistencias": 20},
+        "lucia": {"asistencias": 60, "inasistencias": 0},
+        "miguel": {"asistencias": 30, "inasistencias": 30},
+        "sofia": {"asistencias": 52, "inasistencias": 8},
+        "francisco": {"asistencias": 46, "inasistencias": 14},
+        "rosa": {"asistencias": 41, "inasistencias": 19},
+        "manuel": {"asistencias": 58, "inasistencias": 2},
+        "elena": {"asistencias": 36, "inasistencias": 24}
+    }
+    
+    nombre_lower = nombre_paciente.lower().strip()
+    return pacientes_datos.get(nombre_lower, None)
+
+def generar_reporte_asistencia(nombre_paciente, asistencias=45, inasistencias=15):
 
     documento = SimpleDocTemplate(
-        "Asistencia_vs_Inasistencias.pdf",
+        f"Asistencia_{nombre_paciente}.pdf",
         pagesize=letter,
         rightMargin=72,
         leftMargin=72,
@@ -45,32 +68,31 @@ def generar_reporte_asistencia(asistencias=45, inasistencias=15):
     elementos.append(Paragraph("INFORME DE ASISTENCIAS", titulo_style))
     elementos.append(Spacer(1, 0.3*inch))
     
-    # Fecha
+    elementos.append(Paragraph(f"<b>Paciente:</b> {nombre_paciente}", estilos['Normal']))
+    
     fecha_actual = datetime.now().strftime("%d de %B de %Y")
-    elementos.append(Paragraph(f"Generado: {fecha_actual}", estilos['Normal']))
+    elementos.append(Paragraph(f"<b>Generado:</b> {fecha_actual}", estilos['Normal']))
     elementos.append(Spacer(1, 0.2*inch))
     
-    # Subtítulo
-    elementos.append(Paragraph("Pacientes: Asistencias vs Inasistencias", subtitulo_style))
+    #subtitulo
+    elementos.append(Paragraph("Asistencias vs Inasistencias", subtitulo_style))
     elementos.append(Spacer(1, 0.2*inch))
     
-    # Datos estadísticos
     total = asistencias + inasistencias
     pct_asistencias = (asistencias / total * 100) if total > 0 else 0
     pct_inasistencias = (inasistencias / total * 100) if total > 0 else 0
     
     stats_text = f"""
-    <b>Total de Pacientes:</b> {total}<br/>
+    <b>Total de Turnos:</b> {total}<br/>
     <b>Asistencias:</b> {asistencias} ({pct_asistencias:.1f}%)<br/>
     <b>Inasistencias:</b> {inasistencias} ({pct_inasistencias:.1f}%)
     """
     elementos.append(Paragraph(stats_text, estilos['Normal']))
     elementos.append(Spacer(1, 0.3*inch))
     
-    # Gráfico de pastel
+    #grafico de torta
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
     
-    # Gráfico 1: Pastel
     data = [asistencias, inasistencias]
     labels = ['Asistencias', 'Inasistencias']
     colors = ['#2ecc71', '#e74c3c']
@@ -78,25 +100,48 @@ def generar_reporte_asistencia(asistencias=45, inasistencias=15):
     ax1.pie(data, labels=labels, autopct='%1.1f%%', colors=colors, startangle=90)
     ax1.set_title('Distribución de Asistencias', fontsize=12, fontweight='bold')
     
-    # Gráfico 2: Barras
+    #grafico de barras
     ax2.bar(labels, data, color=colors, edgecolor='black', linewidth=1.5)
-    ax2.set_ylabel('Cantidad de Pacientes', fontsize=10)
+    ax2.set_ylabel('Cantidad de Turnos', fontsize=10)
     ax2.set_title('Comparativa', fontsize=12, fontweight='bold')
     ax2.grid(axis='y', alpha=0.3)
     
     plt.tight_layout()
     
-    # Guardar gráfico en buffer
     buffer = BytesIO()
     plt.savefig(buffer, format='png', dpi=100, bbox_inches='tight')
     buffer.seek(0)
     plt.close()
     
-    # Agregar imagen al PDF
+    #agreagar imagen a PDF
     elementos.append(Image(buffer, width=6*inch, height=2.5*inch))
     
     documento.build(elementos)
-    print("Informe generado correctamente: Asistencia_vs_Inasistencias.pdf")
+    print(f"Informe generado: Asistencia_{nombre_paciente}.pdf")
+
+def main():
+    
+    nombre = input("\nIngresa el nombre del paciente: ").strip()
+    
+    if not nombre:
+        print("Por favor ingresa un nombre válido.")
+        return
+    
+    datos = buscar_paciente(nombre)
+    
+    if datos is None:
+        print(f"No se encontró al paciente: {nombre}")
+        return
+    
+    asistencias = datos["asistencias"]
+    inasistencias = datos["inasistencias"]
+    
+    print(f"\nPaciente encontrado:")
+    print(f"  - Asistencias: {asistencias}")
+    print(f"  - Inasistencias: {inasistencias}")
+    print(f"\nGenerando reporte...")
+    
+    generar_reporte_asistencia(nombre, asistencias, inasistencias)
 
 if __name__ == "__main__":
-    generar_reporte_asistencia(asistencias=45, inasistencias=15)
+    main()

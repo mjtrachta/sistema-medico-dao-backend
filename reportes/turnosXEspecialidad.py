@@ -8,23 +8,19 @@ from datetime import datetime
 
 documento = SimpleDocTemplate("Turnos_por_especialidad.pdf", pagesize=letter) 
 
-# Crear una lista para almacenar los elementos del informe 
 elementos = [] 
 
-# Crear estilos para el informe 
 estilos = getSampleStyleSheet() 
 
-# Agregar un título 
 titulo = "Reporte de Turnos por Especialidad" 
 elementos.append(Paragraph(titulo, estilos['Title'])) 
 
-# Agregar fecha del reporte
+#fecha de generacion de reporte
 fecha = f"Generado: {datetime.now().strftime('%d/%m/%Y %H:%M')}"
 elementos.append(Paragraph(fecha, estilos['Normal']))
 elementos.append(Spacer(1, 0.3 * inch))
 
-# DATOS DE EJEMPLO - Reemplazar con datos reales de tu BD
-# Aquí deberías consultar tu base de datos
+#especialidades hardcodeadas
 datos_especialidades = {
     "Cardiología": 12,
     "Dermatología": 8,
@@ -33,7 +29,6 @@ datos_especialidades = {
     "Oftalmología": 10
 }
 
-# Crear tabla con datos
 data = [["Especialidad", "Cantidad de Turnos"]]
 total_turnos = 0
 
@@ -41,7 +36,6 @@ for especialidad, cantidad in datos_especialidades.items():
     data.append([especialidad, str(cantidad)])
     total_turnos += cantidad
 
-# Agregar fila de total
 data.append(["TOTAL", str(total_turnos)])
 
 table = Table(data, colWidths=[3 * inch, 2 * inch])
@@ -59,7 +53,7 @@ table.setStyle(TableStyle([
 
 elementos.append(table)
 
-# Construir el informe
+#generar informe
 documento.build(elementos) 
 
 print("Informe generado correctamente: Turnos_por_especialidad.pdf")

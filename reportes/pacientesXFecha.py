@@ -35,13 +35,23 @@ def obtener_fechas_validadas():
 
 def obtener_pacientes_por_fecha(fecha_inicio, fecha_fin):
     
-    #pacientes de ejemplo
+    #pacientes hardcodeados
     pacientes_todos = [
         {"nombre": "Juan Pérez", "fecha_atencion": "15-11-2025", "diagnostico": "Gripe"},
         {"nombre": "María López", "fecha_atencion": "16-11-2025", "diagnostico": "Migraña"},
         {"nombre": "Carlos Ruiz", "fecha_atencion": "17-11-2025", "diagnostico": "Dolor de espalda"},
         {"nombre": "Ana García", "fecha_atencion": "10-11-2025", "diagnostico": "Resfriado"},
         {"nombre": "Pedro Martínez", "fecha_atencion": "18-11-2025", "diagnostico": "Consulta general"},
+        {"nombre": "Laura Fernández", "fecha_atencion": "14-11-2025", "diagnostico": "Gastritis"},
+        {"nombre": "Roberto Sánchez", "fecha_atencion": "15-11-2025", "diagnostico": "Hipertensión"},
+        {"nombre": "Sofia Díaz", "fecha_atencion": "16-11-2025", "diagnostico": "Alergia estacional"},
+        {"nombre": "Miguel Ángel Torres", "fecha_atencion": "17-11-2025", "diagnostico": "Dolor de cabeza"},
+        {"nombre": "Claudia Romero", "fecha_atencion": "12-11-2025", "diagnostico": "Control de diabetes"},
+        {"nombre": "Diego Flores", "fecha_atencion": "13-11-2025", "diagnostico": "Infección urinaria"},
+        {"nombre": "Valentina Castro", "fecha_atencion": "14-11-2025", "diagnostico": "Ansiedad"},
+        {"nombre": "Andrés Vega", "fecha_atencion": "18-11-2025", "diagnostico": "Bronquitis"},
+        {"nombre": "Isabela Moreno", "fecha_atencion": "11-11-2025", "diagnostico": "Dermatitis"},
+        {"nombre": "Francisco Núñez", "fecha_atencion": "15-11-2025", "diagnostico": "Fatiga crónica"},
     ]
     
     #filtrar pacientes por rango de fechas
