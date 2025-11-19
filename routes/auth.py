@@ -153,38 +153,67 @@ def login():
         if not usuario.activo:
             return jsonify({'error': 'Usuario inactivo'}), 403
 
+        import logging
+        logging.info(f"Login: Contraseña verificada OK para {usuario.nombre_usuario}")
+
         # Crear tokens con claims adicionales (PyJWT 2.10+ requiere subject como string)
-        access_token = create_access_token(
-            identity=str(usuario.id),
-            additional_claims={'rol': usuario.rol},
-            expires_delta=timedelta(hours=1)
-        )
-        refresh_token = create_refresh_token(
-            identity=str(usuario.id),
-            expires_delta=timedelta(days=30)
-        )
+        try:
+            logging.info(f"Login: Creando access token...")
+            access_token = create_access_token(
+                identity=str(usuario.id),
+                additional_claims={'rol': usuario.rol},
+                expires_delta=timedelta(hours=1)
+            )
+            logging.info(f"Login: Access token creado OK")
+
+            logging.info(f"Login: Creando refresh token...")
+            refresh_token = create_refresh_token(
+                identity=str(usuario.id),
+                expires_delta=timedelta(days=30)
+            )
+            logging.info(f"Login: Refresh token creado OK")
+        except Exception as e:
+            logging.error(f"Login: Error creando tokens: {e}")
+            raise
 
         # Obtener datos adicionales según el rol
         datos_adicionales = {}
-        if usuario.rol == 'paciente':
-            paciente = Paciente.query.filter_by(usuario_id=usuario.id).first()
-            if paciente:
-                datos_adicionales['paciente_id'] = paciente.id
-                datos_adicionales['nro_historia_clinica'] = paciente.nro_historia_clinica
+        try:
+            logging.info(f"Login: Obteniendo datos adicionales para rol {usuario.rol}...")
+            if usuario.rol == 'paciente':
+                paciente = Paciente.query.filter_by(usuario_id=usuario.id).first()
+                if paciente:
+                    datos_adicionales['paciente_id'] = paciente.id
+                    datos_adicionales['nro_historia_clinica'] = paciente.nro_historia_clinica
 
-        elif usuario.rol == 'medico':
-            medico = Medico.query.filter_by(usuario_id=usuario.id).first()
-            if medico:
-                datos_adicionales['medico_id'] = medico.id
-                datos_adicionales['matricula'] = medico.matricula
+            elif usuario.rol == 'medico':
+                medico = Medico.query.filter_by(usuario_id=usuario.id).first()
+                if medico:
+                    datos_adicionales['medico_id'] = medico.id
+                    datos_adicionales['matricula'] = medico.matricula
+            logging.info(f"Login: Datos adicionales obtenidos OK")
+        except Exception as e:
+            logging.error(f"Login: Error obteniendo datos adicionales: {e}")
+            raise
 
-        return jsonify({
-            'message': 'Login exitoso',
-            'usuario': usuario.to_dict(),
-            'access_token': access_token,
-            'refresh_token': refresh_token,
-            **datos_adicionales
-        }), 200
+        try:
+            logging.info(f"Login: Serializando usuario a dict...")
+            usuario_dict = usuario.to_dict()
+            logging.info(f"Login: Usuario serializado OK")
+
+            logging.info(f"Login: Creando respuesta JSON...")
+            response = jsonify({
+                'message': 'Login exitoso',
+                'usuario': usuario_dict,
+                'access_token': access_token,
+                'refresh_token': refresh_token,
+                **datos_adicionales
+            })
+            logging.info(f"Login: Respuesta creada exitosamente")
+            return response, 200
+        except Exception as e:
+            logging.error(f"Login: Error en serialización final: {e}")
+            raise
 
     except UnicodeDecodeError as e:
         # Error de codificación en otra parte del proceso
