@@ -130,21 +130,43 @@ def login():
             return jsonify({'error': 'Usuario y contraseña requeridos'}), 400
 
         print("DEBUG LOGIN: 2. Buscando usuario en BD...")
-        # Buscar por nombre de usuario o email
-        usuario = Usuario.query.filter(
-            (Usuario.nombre_usuario == data['username']) |
-            (Usuario.email == data['username'])
-        ).first()
 
-        if not usuario:
-            print(f"DEBUG LOGIN:    ERROR - Usuario no encontrado: {data['username']}")
-            return jsonify({'error': 'Credenciales inválidas'}), 401
+        # WORKAROUND para Windows: usar SQL raw con decode manual para evitar errores de psycopg2
+        try:
+            from sqlalchemy import text
+            result = db.session.execute(text("""
+                SELECT id, nombre_usuario, email, hash_contrasena, rol, activo, creado_en
+                FROM usuarios
+                WHERE nombre_usuario = :username OR email = :username
+                LIMIT 1
+            """), {'username': data['username']})
 
-        print(f"DEBUG LOGIN:    Usuario encontrado: {usuario.nombre_usuario}")
-        print(f"DEBUG LOGIN:    Hash type: {type(usuario.hash_contrasena)}")
-        print(f"DEBUG LOGIN:    Hash length: {len(usuario.hash_contrasena) if usuario.hash_contrasena else 0}")
-        if usuario.hash_contrasena:
-            print(f"DEBUG LOGIN:    Hash preview: {repr(usuario.hash_contrasena[:50])}")
+            row = result.fetchone()
+            if not row:
+                print(f"DEBUG LOGIN:    ERROR - Usuario no encontrado: {data['username']}")
+                return jsonify({'error': 'Credenciales inválidas'}), 401
+
+            # Construir objeto Usuario manualmente
+            usuario = Usuario()
+            usuario.id = row[0]
+            usuario.nombre_usuario = row[1]
+            usuario.email = row[2]
+            usuario.hash_contrasena = row[3]
+            usuario.rol = row[4]
+            usuario.activo = row[5]
+            usuario.creado_en = row[6]
+
+            print(f"DEBUG LOGIN:    Usuario encontrado (SQL raw): {usuario.nombre_usuario}")
+            print(f"DEBUG LOGIN:    Hash type: {type(usuario.hash_contrasena)}")
+            print(f"DEBUG LOGIN:    Hash length: {len(usuario.hash_contrasena) if usuario.hash_contrasena else 0}")
+            if usuario.hash_contrasena:
+                print(f"DEBUG LOGIN:    Hash preview: {repr(usuario.hash_contrasena[:50])}")
+
+        except Exception as e:
+            print(f"DEBUG LOGIN:    ERROR en query SQL: {e}")
+            import traceback
+            traceback.print_exc()
+            raise
 
         # Verificar contraseña con mejor manejo de errores
         print("DEBUG LOGIN: 3. Verificando contraseña...")
