@@ -19,12 +19,9 @@ class Config:
     # Quitar client_encoding de URL, configurarlo en connect_args
     SQLALCHEMY_DATABASE_URI = f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
 
-    # Opciones del engine SQLAlchemy para forzar UTF-8 en psycopg2 (especialmente para Windows)
+    # Opciones del engine SQLAlchemy
     SQLALCHEMY_ENGINE_OPTIONS = {
-        'pool_pre_ping': True,
-        'connect_args': {
-            'options': '-c client_encoding=UTF8'
-        }
+        'pool_pre_ping': True
     }
 
     # Configuración de JWT
