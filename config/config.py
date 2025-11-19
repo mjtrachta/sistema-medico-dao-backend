@@ -16,14 +16,16 @@ class Config:
     DB_PORT = os.getenv('DB_PORT', '5432')
     DB_NAME = os.getenv('DB_NAME', 'turnos_medicos_dao')
 
-    SQLALCHEMY_DATABASE_URI = f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?client_encoding=utf8'
+    # Quitar client_encoding de URL, configurarlo en connect_args
+    SQLALCHEMY_DATABASE_URI = f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
 
     # Opciones del engine SQLAlchemy para forzar UTF-8 en psycopg2 (especialmente para Windows)
     SQLALCHEMY_ENGINE_OPTIONS = {
+        'pool_pre_ping': True,
         'connect_args': {
-            'client_encoding': 'utf8',
-            'options': '-c client_encoding=utf8'
-        }
+            'options': '-c client_encoding=UTF8'
+        },
+        'encoding': 'utf-8'
     }
 
     # Configuración de JWT
@@ -62,7 +64,7 @@ class TestingConfig(Config):
     TESTING = True
     # Usar PostgreSQL para tests (base de datos separada)
     DB_NAME_TEST = os.getenv('DB_NAME_TEST', 'turnos_medicos_dao_test')
-    SQLALCHEMY_DATABASE_URI = f'postgresql://{Config.DB_USER}:{Config.DB_PASSWORD}@{Config.DB_HOST}:{Config.DB_PORT}/{DB_NAME_TEST}?client_encoding=utf8'
+    SQLALCHEMY_DATABASE_URI = f'postgresql://{Config.DB_USER}:{Config.DB_PASSWORD}@{Config.DB_HOST}:{Config.DB_PORT}/{DB_NAME_TEST}'
     # Desactivar validación de schemas en testing
     WTF_CSRF_ENABLED = False
 
