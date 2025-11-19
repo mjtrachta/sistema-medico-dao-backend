@@ -127,7 +127,27 @@ def login():
             (Usuario.email == data['username'])
         ).first()
 
-        if not usuario or not usuario.check_password(data['password']):
+        if not usuario:
+            return jsonify({'error': 'Credenciales inválidas'}), 401
+
+        # Verificar contraseña con mejor manejo de errores
+        try:
+            password_valida = usuario.check_password(data['password'])
+        except UnicodeDecodeError as e:
+            # Error específico de codificación UTF-8
+            import logging
+            logging.error(f"Error UTF-8 al verificar contraseña para usuario {usuario.nombre_usuario}: {e}")
+            return jsonify({
+                'error': 'Error en la verificación de credenciales. Contacte al administrador.',
+                'detail': 'Password hash encoding error'
+            }), 500
+        except Exception as e:
+            # Otros errores en la verificación de contraseña
+            import logging
+            logging.error(f"Error al verificar contraseña para usuario {usuario.nombre_usuario}: {e}")
+            return jsonify({'error': 'Error en la verificación de credenciales'}), 500
+
+        if not password_valida:
             return jsonify({'error': 'Credenciales inválidas'}), 401
 
         if not usuario.activo:
@@ -166,7 +186,17 @@ def login():
             **datos_adicionales
         }), 200
 
+    except UnicodeDecodeError as e:
+        # Error de codificación en otra parte del proceso
+        import logging
+        logging.error(f"Error UTF-8 en login: {e}")
+        return jsonify({
+            'error': 'Error de codificación. Contacte al administrador.',
+            'detail': str(e)
+        }), 500
     except Exception as e:
+        import logging
+        logging.error(f"Error en login: {e}")
         return jsonify({'error': str(e)}), 500
 
 @auth_bp.route('/refresh', methods=['POST'])

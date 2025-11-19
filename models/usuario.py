@@ -23,7 +23,18 @@ class Usuario(db.Model):
 
     def check_password(self, password):
         """Verifica si la contraseña es correcta"""
-        return check_password_hash(self.hash_contrasena, password)
+        # Asegurar que el hash es string (no bytes)
+        hash_val = self.hash_contrasena
+        if isinstance(hash_val, bytes):
+            try:
+                hash_val = hash_val.decode('utf-8')
+            except UnicodeDecodeError:
+                # Si no se puede decodificar, el hash está corrupto
+                import logging
+                logging.error(f"Hash corrupto para usuario {self.nombre_usuario}: no puede decodificarse como UTF-8")
+                raise
+
+        return check_password_hash(hash_val, password)
 
     def has_role(self, *roles):
         """Verifica si el usuario tiene alguno de los roles especificados"""
