@@ -35,6 +35,9 @@ class Config:
     MAIL_PASSWORD = os.getenv('MAIL_PASSWORD', '')
     MAIL_DEFAULT_SENDER = os.getenv('MAIL_DEFAULT_SENDER', 'noreply@turnos-medicos.com')
 
+    # Configuración de Scheduler
+    SCHEDULER_ENABLED = os.getenv('SCHEDULER_ENABLED', 'True') == 'True'
+
 class DevelopmentConfig(Config):
     """Configuración de desarrollo"""
     DEBUG = True

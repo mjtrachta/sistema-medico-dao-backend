@@ -49,3 +49,49 @@ def create_especialidad():
         return jsonify(especialidad_schema.dump(especialidad)), 201
     except Exception as e:
         return jsonify({'error': str(e)}), 400
+
+
+@especialidades_bp.route('/<int:id>', methods=['PUT'])
+def update_especialidad(id):
+    """Actualiza una especialidad existente."""
+    try:
+        especialidad = especialidad_repository.find_by_id(id)
+        if not especialidad:
+            return jsonify({'error': 'Especialidad no encontrada'}), 404
+
+        data = request.get_json()
+
+        # Actualizar campos
+        if 'nombre' in data:
+            especialidad.nombre = data['nombre']
+        if 'descripcion' in data:
+            especialidad.descripcion = data['descripcion']
+        if 'duracion_turno_min' in data:
+            especialidad.duracion_turno_min = data['duracion_turno_min']
+
+        especialidad = especialidad_repository.update(especialidad)
+        return jsonify(especialidad_schema.dump(especialidad)), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
+
+@especialidades_bp.route('/<int:id>', methods=['DELETE'])
+def delete_especialidad(id):
+    """
+    Desactiva una especialidad (soft delete).
+    No se elimina físicamente para preservar relaciones con médicos y turnos.
+    """
+    try:
+        especialidad = especialidad_repository.find_by_id(id)
+        if not especialidad:
+            return jsonify({'error': 'Especialidad no encontrada'}), 404
+
+        # Soft delete
+        especialidad.activo = False
+        especialidad_repository.update(especialidad)
+
+        return jsonify({'message': 'Especialidad desactivada exitosamente'}), 200
+
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500

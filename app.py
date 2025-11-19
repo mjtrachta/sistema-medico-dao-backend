@@ -83,10 +83,16 @@ def create_app(config_name='development'):
         db.session.rollback()
         return jsonify({'error': 'Error interno del servidor'}), 500
 
+    # Inicializar scheduler para tareas automáticas
+    # Solo en modo no-debug o con use_reloader=False
+    from scheduler import init_scheduler
+    init_scheduler(app)
+
     return app
 
 if __name__ == '__main__':
     env = os.getenv('FLASK_ENV', 'development')
     app = create_app(env)
     # use_reloader=False para evitar que los tokens JWT se invaliden con cada reload
-    app.run(debug=True, host='0.0.0.0', port=5000, use_reloader=False)
+    port = int(os.getenv('PORT', 5001))
+    app.run(debug=True, host='0.0.0.0', port=port, use_reloader=False)
