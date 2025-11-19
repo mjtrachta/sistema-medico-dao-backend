@@ -117,19 +117,19 @@ def login():
     """
     import logging
     try:
-        logging.info("=" * 60)
-        logging.info("INICIO DE LOGIN")
-        logging.info("=" * 60)
+        print("=" * 60)
+        print("DEBUG LOGIN: INICIO")
+        print("=" * 60)
 
-        logging.info("1. Obteniendo datos del request...")
+        print("DEBUG LOGIN: 1. Obteniendo datos del request...")
         data = request.get_json()
-        logging.info(f"   Datos recibidos: username={data.get('username') if data else None}")
+        print(f"DEBUG LOGIN:    username={data.get('username') if data else None}")
 
         if not data or not data.get('username') or not data.get('password'):
-            logging.warning("   Faltan credenciales")
+            print("DEBUG LOGIN:    ERROR - Faltan credenciales")
             return jsonify({'error': 'Usuario y contraseña requeridos'}), 400
 
-        logging.info("2. Buscando usuario en base de datos...")
+        print("DEBUG LOGIN: 2. Buscando usuario en BD...")
         # Buscar por nombre de usuario o email
         usuario = Usuario.query.filter(
             (Usuario.nombre_usuario == data['username']) |
@@ -137,20 +137,23 @@ def login():
         ).first()
 
         if not usuario:
-            logging.warning(f"   Usuario no encontrado: {data['username']}")
+            print(f"DEBUG LOGIN:    ERROR - Usuario no encontrado: {data['username']}")
             return jsonify({'error': 'Credenciales inválidas'}), 401
 
-        logging.info(f"   Usuario encontrado: {usuario.nombre_usuario}")
-        logging.info(f"   Hash type: {type(usuario.hash_contrasena)}")
-        logging.info(f"   Hash length: {len(usuario.hash_contrasena) if usuario.hash_contrasena else 0}")
+        print(f"DEBUG LOGIN:    Usuario encontrado: {usuario.nombre_usuario}")
+        print(f"DEBUG LOGIN:    Hash type: {type(usuario.hash_contrasena)}")
+        print(f"DEBUG LOGIN:    Hash length: {len(usuario.hash_contrasena) if usuario.hash_contrasena else 0}")
+        if usuario.hash_contrasena:
+            print(f"DEBUG LOGIN:    Hash preview: {repr(usuario.hash_contrasena[:50])}")
 
         # Verificar contraseña con mejor manejo de errores
-        logging.info("3. Verificando contraseña...")
+        print("DEBUG LOGIN: 3. Verificando contraseña...")
         try:
             password_valida = usuario.check_password(data['password'])
-            logging.info(f"   Verificación completada: {password_valida}")
+            print(f"DEBUG LOGIN:    Verificación OK: {password_valida}")
         except UnicodeDecodeError as e:
             # Error específico de codificación UTF-8
+            print(f"DEBUG LOGIN:    ERROR UTF-8 en check_password: {e}")
             logging.error(f"   ERROR UTF-8 al verificar contraseña para usuario {usuario.nombre_usuario}: {e}")
             logging.error(f"   Hash preview: {repr(usuario.hash_contrasena[:50]) if usuario.hash_contrasena else 'None'}")
             return jsonify({
@@ -159,6 +162,7 @@ def login():
             }), 500
         except Exception as e:
             # Otros errores en la verificación de contraseña
+            print(f"DEBUG LOGIN:    ERROR en check_password: {e}")
             logging.error(f"   ERROR al verificar contraseña para usuario {usuario.nombre_usuario}: {e}")
             import traceback
             logging.error(traceback.format_exc())
