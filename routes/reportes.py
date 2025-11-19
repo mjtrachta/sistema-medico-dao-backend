@@ -49,10 +49,13 @@ def reporte_turnos_medico(medico_id):
         return jsonify({'error': str(e)}), 500
 
 
-@reportes_bp.route('/turnos-por-especialidad', methods=['GET'])
-def reporte_turnos_especialidad():
+@reportes_bp.route('/turnos-por-especialidad/<int:especialidad_id>', methods=['GET'])
+def reporte_turnos_especialidad(especialidad_id):
     """
-    Reporte: Cantidad de turnos por especialidad.
+    Reporte: Cantidad de turnos por especialidad específica.
+
+    Path params:
+        - especialidad_id: ID de la especialidad
 
     Query params (opcionales):
         - fecha_inicio (YYYY-MM-DD)
@@ -73,15 +76,16 @@ def reporte_turnos_especialidad():
         if fecha_fin_str:
             fecha_fin = datetime.strptime(fecha_fin_str, '%Y-%m-%d').date()
 
-        # Generar reporte
-        reporte = reporte_service.turnos_por_especialidad(fecha_inicio, fecha_fin)
+        # Generar reporte para especialidad específica
+        reporte = reporte_service.turnos_por_especialidad_especifica(especialidad_id, fecha_inicio, fecha_fin)
 
         return jsonify({
+            'especialidad_id': especialidad_id,
             'periodo': {
                 'inicio': fecha_inicio.isoformat() if fecha_inicio else None,
                 'fin': fecha_fin.isoformat() if fecha_fin else None
             },
-            'especialidades': reporte
+            'turnos': reporte
         }), 200
 
     except ValueError as e:

@@ -9,7 +9,7 @@ PATRÓN: Service Layer + Strategy Pattern
 from typing import List, Dict, Optional
 from datetime import date, datetime
 from sqlalchemy import func, and_
-from models import Turno, Medico, Especialidad, Paciente, HistoriaClinica
+from models import Turno, Medico, Especialidad, Paciente, HistoriaClinica, Ubicacion
 from models.database import db
 
 
@@ -167,6 +167,79 @@ class ReporteService:
             })
 
         return reporte
+
+    def turnos_por_especialidad_especifica(
+        self,
+        especialidad_id: int,
+        fecha_inicio: date = None,
+        fecha_fin: date = None
+    ) -> List[Dict]:
+        """
+        Reporte: Turnos de una especialidad específica.
+
+        Args:
+            especialidad_id: ID de la especialidad
+            fecha_inicio: Fecha de inicio (opcional)
+            fecha_fin: Fecha de fin (opcional)
+
+        Returns:
+            Lista de turnos con detalles
+        """
+        from sqlalchemy import and_
+        
+        # Query base para turnos de la especialidad
+        query = db.session.query(
+            Turno,
+            Paciente.nombre.label('paciente_nombre'),
+            Paciente.apellido.label('paciente_apellido'),
+            Medico.nombre.label('medico_nombre'),
+            Medico.apellido.label('medico_apellido'),
+            Especialidad.nombre.label('especialidad_nombre'),
+            Ubicacion.nombre.label('ubicacion_nombre')
+        ).join(
+            Medico, Turno.medico_id == Medico.id
+        ).join(
+            Especialidad, Medico.especialidad_id == Especialidad.id
+        ).join(
+            Paciente, Turno.paciente_id == Paciente.id
+        ).join(
+            Ubicacion, Turno.ubicacion_id == Ubicacion.id
+        ).filter(
+            Especialidad.id == especialidad_id
+        )
+
+        # Aplicar filtros de fecha
+        if fecha_inicio:
+            query = query.filter(Turno.fecha >= fecha_inicio)
+        if fecha_fin:
+            query = query.filter(Turno.fecha <= fecha_fin)
+
+        # Ordenar por fecha
+        query = query.order_by(Turno.fecha.desc(), Turno.hora.desc())
+
+        results = query.all()
+
+        # Formatear resultados
+        turnos = []
+        for r in results:
+            turnos.append({
+                'id': r.Turno.id,
+                'codigo_turno': r.Turno.codigo_turno,
+                'fecha': r.Turno.fecha.isoformat(),
+                'hora': r.Turno.hora.strftime('%H:%M'),
+                'estado': r.Turno.estado,
+                'motivo_consulta': r.Turno.motivo_consulta,
+                'paciente': {
+                    'nombre': f"{r.paciente_nombre} {r.paciente_apellido}"
+                },
+                'medico': {
+                    'nombre': f"Dr./Dra. {r.medico_nombre} {r.medico_apellido}"
+                },
+                'especialidad': r.especialidad_nombre,
+                'ubicacion': r.ubicacion_nombre
+            })
+
+        return turnos
 
     def pacientes_atendidos(
         self,
