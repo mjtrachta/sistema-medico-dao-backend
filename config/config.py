@@ -18,6 +18,14 @@ class Config:
 
     SQLALCHEMY_DATABASE_URI = f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}?client_encoding=utf8'
 
+    # Opciones del engine SQLAlchemy para forzar UTF-8 en psycopg2 (especialmente para Windows)
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'connect_args': {
+            'client_encoding': 'utf8',
+            'options': '-c client_encoding=utf8'
+        }
+    }
+
     # Configuración de JWT
     JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', SECRET_KEY)
     JWT_ACCESS_TOKEN_EXPIRES = 3600  # 1 hora en segundos
