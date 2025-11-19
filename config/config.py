@@ -16,8 +16,8 @@ class Config:
     DB_PORT = os.getenv('DB_PORT', '5432')
     DB_NAME = os.getenv('DB_NAME', 'turnos_medicos_dao')
 
-    # Quitar client_encoding de URL, configurarlo en connect_args
-    SQLALCHEMY_DATABASE_URI = f'postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
+    # Usar pg8000 (driver puro Python, sin problemas de encoding en Windows)
+    SQLALCHEMY_DATABASE_URI = f'postgresql+pg8000://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
 
     # Opciones del engine SQLAlchemy
     SQLALCHEMY_ENGINE_OPTIONS = {
@@ -60,7 +60,7 @@ class TestingConfig(Config):
     TESTING = True
     # Usar PostgreSQL para tests (base de datos separada)
     DB_NAME_TEST = os.getenv('DB_NAME_TEST', 'turnos_medicos_dao_test')
-    SQLALCHEMY_DATABASE_URI = f'postgresql://{Config.DB_USER}:{Config.DB_PASSWORD}@{Config.DB_HOST}:{Config.DB_PORT}/{DB_NAME_TEST}'
+    SQLALCHEMY_DATABASE_URI = f'postgresql+pg8000://{Config.DB_USER}:{Config.DB_PASSWORD}@{Config.DB_HOST}:{Config.DB_PORT}/{DB_NAME_TEST}'
     # Desactivar validación de schemas en testing
     WTF_CSRF_ENABLED = False
 
