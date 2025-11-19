@@ -24,8 +24,7 @@ class Config:
         'pool_pre_ping': True,
         'connect_args': {
             'options': '-c client_encoding=UTF8'
-        },
-        'encoding': 'utf-8'
+        }
     }
 
     # Configuración de JWT
