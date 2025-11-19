@@ -115,12 +115,21 @@ def login():
     Login con usuario/email y contraseña
     Devuelve JWT tokens
     """
+    import logging
     try:
+        logging.info("=" * 60)
+        logging.info("INICIO DE LOGIN")
+        logging.info("=" * 60)
+
+        logging.info("1. Obteniendo datos del request...")
         data = request.get_json()
+        logging.info(f"   Datos recibidos: username={data.get('username') if data else None}")
 
         if not data or not data.get('username') or not data.get('password'):
+            logging.warning("   Faltan credenciales")
             return jsonify({'error': 'Usuario y contraseña requeridos'}), 400
 
+        logging.info("2. Buscando usuario en base de datos...")
         # Buscar por nombre de usuario o email
         usuario = Usuario.query.filter(
             (Usuario.nombre_usuario == data['username']) |
@@ -128,23 +137,31 @@ def login():
         ).first()
 
         if not usuario:
+            logging.warning(f"   Usuario no encontrado: {data['username']}")
             return jsonify({'error': 'Credenciales inválidas'}), 401
 
+        logging.info(f"   Usuario encontrado: {usuario.nombre_usuario}")
+        logging.info(f"   Hash type: {type(usuario.hash_contrasena)}")
+        logging.info(f"   Hash length: {len(usuario.hash_contrasena) if usuario.hash_contrasena else 0}")
+
         # Verificar contraseña con mejor manejo de errores
+        logging.info("3. Verificando contraseña...")
         try:
             password_valida = usuario.check_password(data['password'])
+            logging.info(f"   Verificación completada: {password_valida}")
         except UnicodeDecodeError as e:
             # Error específico de codificación UTF-8
-            import logging
-            logging.error(f"Error UTF-8 al verificar contraseña para usuario {usuario.nombre_usuario}: {e}")
+            logging.error(f"   ERROR UTF-8 al verificar contraseña para usuario {usuario.nombre_usuario}: {e}")
+            logging.error(f"   Hash preview: {repr(usuario.hash_contrasena[:50]) if usuario.hash_contrasena else 'None'}")
             return jsonify({
                 'error': 'Error en la verificación de credenciales. Contacte al administrador.',
                 'detail': 'Password hash encoding error'
             }), 500
         except Exception as e:
             # Otros errores en la verificación de contraseña
-            import logging
-            logging.error(f"Error al verificar contraseña para usuario {usuario.nombre_usuario}: {e}")
+            logging.error(f"   ERROR al verificar contraseña para usuario {usuario.nombre_usuario}: {e}")
+            import traceback
+            logging.error(traceback.format_exc())
             return jsonify({'error': 'Error en la verificación de credenciales'}), 500
 
         if not password_valida:
