@@ -140,6 +140,13 @@ def create_turno():
         if not all(k in data for k in required_fields):
             return jsonify({'error': 'Faltan campos requeridos'}), 400
 
+        # Convertir IDs a enteros (por si vienen como strings)
+        try:
+            medico_id = int(data['medico_id'])
+            ubicacion_id = int(data['ubicacion_id'])
+        except (ValueError, TypeError):
+            return jsonify({'error': 'medico_id y ubicacion_id deben ser números válidos'}), 400
+
         # Parsear fecha y hora
         fecha = datetime.strptime(data['fecha'], '%Y-%m-%d').date()
         hora = datetime.strptime(data['hora'], '%H:%M').time()
@@ -169,8 +176,8 @@ def create_turno():
         # Este único método coordina toda la operación compleja
         turno = turno_service.crear_turno(
             paciente_id=paciente_id,
-            medico_id=data['medico_id'],
-            ubicacion_id=data['ubicacion_id'],
+            medico_id=medico_id,
+            ubicacion_id=ubicacion_id,
             fecha=fecha,
             hora=hora,
             duracion_min=data.get('duracion_min', 30),
